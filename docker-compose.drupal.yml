@@ -26,7 +26,7 @@ services:
       - traefik.http.routers.${COMPOSE_PROJECT_NAME-isle-dc}-drupal_http.rule=Host(`${DOMAIN}`)
       - traefik.http.routers.${COMPOSE_PROJECT_NAME-isle-dc}-drupal_http.middlewares=drupal-redirectscheme
       - traefik.http.routers.${COMPOSE_PROJECT_NAME-isle-dc}-drupal_https.entrypoints=https
-      - traefik.http.routers.${COMPOSE_PROJECT_NAME-isle-dc}-drupal_https.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME-isle-dc}-drupal_https.rule=PathPrefix(`/`)
       - traefik.http.routers.${COMPOSE_PROJECT_NAME-isle-dc}-drupal_https.tls=true
     networks:
       default:
