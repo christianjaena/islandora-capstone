@@ -23,7 +23,7 @@ services:
       - traefik.http.middlewares.drupal-redirectscheme.redirectscheme.permanent=true
       - traefik.http.routers.${COMPOSE_PROJECT_NAME-isle-dc}-drupal_http.service=${COMPOSE_PROJECT_NAME-isle-dc}-drupal
       - traefik.http.routers.${COMPOSE_PROJECT_NAME-isle-dc}-drupal_http.entrypoints=http
-      - traefik.http.routers.${COMPOSE_PROJECT_NAME-isle-dc}-drupal_http.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.${COMPOSE_PROJECT_NAME-isle-dc}-drupal_http.rule=PathPrefix(`/`)
       - traefik.http.routers.${COMPOSE_PROJECT_NAME-isle-dc}-drupal_http.middlewares=drupal-redirectscheme
       - traefik.http.routers.${COMPOSE_PROJECT_NAME-isle-dc}-drupal_https.entrypoints=https
       - traefik.http.routers.${COMPOSE_PROJECT_NAME-isle-dc}-drupal_https.rule=PathPrefix(`/`)
