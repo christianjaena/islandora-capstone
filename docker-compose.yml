@@ -1,0 +1,242 @@
+networks:
+  default:
+    internal: true
+  gateway:
+    driver: bridge
+    internal: false
+    name: gateway
+services:
+  activemq:
+    image: islandora/activemq:1.0.0-alpha-3
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.isle-dc-activemq_http.entrypoints: activemq
+      traefik.http.routers.isle-dc-activemq_http.service: isle-dc-activemq
+      traefik.http.services.isle-dc-activemq.loadbalancer.server.port: '8161'
+    networks:
+      default: {}
+    volumes:
+    - activemq-data:/opt/activemq/data:rw
+  alpaca:
+    image: islandora/alpaca:1.0.0-alpha-3
+  blazegraph:
+    image: islandora/blazegraph:1.0.0-alpha-3
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.isle-dc-blazegraph_http.entrypoints: blazegraph
+      traefik.http.routers.isle-dc-blazegraph_http.service: isle-dc-blazegraph
+      traefik.http.services.isle-dc-blazegraph.loadbalancer.server.port: '80'
+    networks:
+      default: {}
+    volumes:
+    - blazegraph-data:/data:rw
+  cantaloupe:
+    image: islandora/cantaloupe:1.0.0-alpha-3
+    labels:
+      traefik.enable: "true"
+      traefik.http.middlewares.cantaloupe-redirectscheme.redirectscheme.permanent: "true"
+      traefik.http.middlewares.cantaloupe-redirectscheme.redirectscheme.scheme: https
+      traefik.http.routers.isle-dc-cantaloupe_http.entrypoints: http
+      traefik.http.routers.isle-dc-cantaloupe_http.middlewares: cantaloupe-redirectscheme
+      traefik.http.routers.isle-dc-cantaloupe_http.rule: Host(`islandora.traefik.me`)
+        && PathPrefix(`/cantaloupe`)
+      traefik.http.routers.isle-dc-cantaloupe_http.service: isle-dc-cantaloupe
+      traefik.http.routers.isle-dc-cantaloupe_https.entrypoints: https
+      traefik.http.routers.isle-dc-cantaloupe_https.rule: Host(`islandora.traefik.me`)
+        && PathPrefix(`/cantaloupe`)
+      traefik.http.routers.isle-dc-cantaloupe_https.tls: "true"
+      traefik.http.services.isle-dc-cantaloupe.loadbalancer.server.port: '80'
+    networks:
+      default: {}
+    volumes:
+    - cantaloupe-data:/data:rw
+  crayfits:
+    depends_on:
+      fits:
+        condition: service_started
+    image: islandora/crayfits:1.0.0-alpha-3
+  drupal:
+    depends_on:
+      mariadb:
+        condition: service_started
+      traefik:
+        condition: service_started
+    environment:
+      DRUPAL_DEFAULT_CANTALOUPE_URL: https://islandora.traefik.me/cantaloupe/iiif/2
+      DRUPAL_DEFAULT_DB_DRIVER: mysql
+      DRUPAL_DEFAULT_FCREPO_HOST: islandora.traefik.me
+      DRUPAL_DEFAULT_FCREPO_PORT: 8081
+      DRUPAL_DEFAULT_INSTALL_EXISTING_CONFIG: "false"
+      DRUPAL_DEFAULT_MATOMO_URL: https://islandora.traefik.me/matomo/
+      DRUPAL_DEFAULT_PROFILE: standard
+      DRUPAL_DEFAULT_SITE_URL: http://islandora.traefik.me
+    image: islandora/drupal:1.0.0-alpha-3
+    labels:
+      traefik.enable: "true"
+      traefik.http.middlewares.drupal-redirectscheme.redirectscheme.permanent: "true"
+      traefik.http.middlewares.drupal-redirectscheme.redirectscheme.scheme: https
+      traefik.http.routers.isle-dc-drupal_http.entrypoints: http
+      traefik.http.routers.isle-dc-drupal_http.middlewares: drupal-redirectscheme
+      traefik.http.routers.isle-dc-drupal_http.rule: Host(`islandora.traefik.me`)
+      traefik.http.routers.isle-dc-drupal_http.service: isle-dc-drupal
+      traefik.http.routers.isle-dc-drupal_https.entrypoints: https
+      traefik.http.routers.isle-dc-drupal_https.rule: Host(`islandora.traefik.me`)
+      traefik.http.routers.isle-dc-drupal_https.tls: "true"
+      traefik.http.services.isle-dc-drupal.loadbalancer.server.port: '80'
+    networks:
+      default: {}
+      gateway: {}
+    volumes:
+    - solr-data:/opt/solr/server/solr:rw
+    - /home/christianjaena/isle-dc/codebase:/var/www/drupal:delegated
+    - drupal-sites-data:/var/www/drupal/web/sites/default/files:rw
+  fcrepo:
+    depends_on:
+      activemq:
+        condition: service_started
+    environment:
+      FCREPO_ALLOW_EXTERNAL_DRUPAL: http://islandora.traefik.me/
+      FCREPO_DISABLE_SYN: "false"
+      FCREPO_PERSISTENCE_TYPE: mysql
+      FCREPO_TOMCAT_ADMIN_ROLES: manager-gui,fedoraAdmin
+      FCREPO_TOMCAT_ADMIN_USER: admin
+    image: islandora/fcrepo6:1.0.0-alpha-3
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.isle-dc-fcrepo_http.entrypoints: fcrepo
+      traefik.http.routers.isle-dc-fcrepo_http.service: isle-dc-fcrepo
+      traefik.http.services.isle-dc-fcrepo.loadbalancer.server.port: '80'
+    networks:
+      default: {}
+    volumes:
+    - fcrepo-data:/data:rw
+  fits:
+    image: islandora/fits:1.0.0-alpha-3
+  homarus:
+    image: islandora/homarus:1.0.0-alpha-3
+  houdini:
+    image: islandora/houdini:1.0.0-alpha-3
+  hypercube:
+    image: islandora/hypercube:1.0.0-alpha-3
+  mariadb:
+    image: islandora/mariadb:1.0.0-alpha-3
+    labels:
+      traefik.enable: "true"
+      traefik.tcp.routers.isle-dc-mysql_tcp.entrypoints: mysql
+      traefik.tcp.routers.isle-dc-mysql_tcp.rule: HostSNI(`*`)
+      traefik.tcp.routers.isle-dc-mysql_tcp.service: isle-dc-mysql
+      traefik.tcp.services.isle-dc-mysql.loadbalancer.server.port: '3306'
+    networks:
+      default: {}
+    volumes:
+    - mariadb-data:/var/lib/mysql:rw
+    - mariadb-files:/var/lib/mysql-files:rw
+  matomo:
+    depends_on:
+      mariadb:
+        condition: service_started
+    environment:
+      MATOMO_DEFAULT_SITE_HOST: islandora.traefik.me
+    image: islandora/matomo:1.0.0-alpha-3
+    labels:
+      traefik.enable: "true"
+      traefik.http.middlewares.isle-dc-matomo-customrequestheaders.headers.customrequestheaders.X-Forwarded-Uri: /matomo
+      traefik.http.middlewares.isle-dc-matomo-redirectscheme.redirectscheme.permanent: "true"
+      traefik.http.middlewares.isle-dc-matomo-redirectscheme.redirectscheme.scheme: https
+      traefik.http.middlewares.isle-dc-matomo-stripprefix.stripprefix.prefixes: /matomo
+      traefik.http.middlewares.isle-dc-matomo.chain.middlewares: isle-dc-matomo-stripprefix,isle-dc-matomo-customrequestheaders
+      traefik.http.routers.isle-dc-matomo_http.entrypoints: http
+      traefik.http.routers.isle-dc-matomo_http.middlewares: isle-dc-matomo-redirectscheme
+      traefik.http.routers.isle-dc-matomo_http.rule: Host(`islandora.traefik.me`)
+        && PathPrefix(`/matomo`)
+      traefik.http.routers.isle-dc-matomo_http.service: isle-dc-matomo
+      traefik.http.routers.isle-dc-matomo_https.entrypoints: https
+      traefik.http.routers.isle-dc-matomo_https.middlewares: isle-dc-matomo
+      traefik.http.routers.isle-dc-matomo_https.rule: Host(`islandora.traefik.me`)
+        && PathPrefix(`/matomo`)
+      traefik.http.routers.isle-dc-matomo_https.tls: "true"
+      traefik.http.services.isle-dc-matomo.loadbalancer.server.port: '80'
+    networks:
+      default: {}
+    volumes:
+    - matomo-config-data:/var/www/matomo:rw
+  milliner:
+    environment:
+      MILLINER_FEDORA6: "true"
+    image: islandora/milliner:1.0.0-alpha-3
+    networks:
+      default: {}
+      gateway: {}
+  recast:
+    image: islandora/recast:1.0.0-alpha-3
+  solr:
+    image: islandora/solr:1.0.0-alpha-3
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.isle-dc-solr_http.entrypoints: solr
+      traefik.http.routers.isle-dc-solr_http.service: isle-dc-solr
+      traefik.http.services.isle-dc-solr.loadbalancer.server.port: '8983'
+    networks:
+      default: {}
+    volumes:
+    - solr-data:/opt/solr/server/solr:rw
+  traefik:
+    command: '--api.insecure=true --api.dashboard=true --api.debug=true --entryPoints.http.address=:3000
+      --entryPoints.https.address=:5000 --entryPoints.mysql.address=:3306 --entryPoints.postgresql.address=:5432
+      --entryPoints.fcrepo.address=:8081 --entryPoints.blazegraph.address=:8082 --entryPoints.activemq.address=:8161
+      --entryPoints.solr.address=:8983 --entryPoints.code-server.address=:8443 --providers.docker
+      --providers.docker.network=gateway --providers.docker.exposedByDefault=false
+      --providers.file.filename=/etc/traefik/tls.yml --providers.docker.defaultRule=Host(`islandora.traefik.me`)
+
+      '
+    container_name: traefik
+    image: traefik:2.2.1
+    labels:
+      traefik.http.routers.api.service: api@internal
+    networks:
+      default:
+        aliases:
+        - islandora.traefik.me
+      gateway: {}
+    ports:
+    - published: 3000
+      target: 3000
+    - published: 3306
+      target: 3306
+    - published: 5000
+      target: 5000
+    - published: 5432
+      target: 5432
+    - published: 8080
+      target: 8080
+    - published: 8081
+      target: 8081
+    - published: 8082
+      target: 8082
+    - published: 8161
+      target: 8161
+    - published: 8443
+      target: 8443
+    - published: 8983
+      target: 8983
+    volumes:
+    - /home/christianjaena/isle-dc/certs:/etc/ssl/traefik:rw
+    - /home/christianjaena/isle-dc/tls.yml:/etc/traefik/tls.yml:rw
+    - /var/run/docker.sock:/var/run/docker.sock:rw
+  watchtower:
+    command: --interval 1 --no-pull
+    image: v2tec/watchtower
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock:rw
+version: '3.7'
+volumes:
+  activemq-data: {}
+  blazegraph-data: {}
+  cantaloupe-data: {}
+  drupal-sites-data: {}
+  fcrepo-data: {}
+  mariadb-data: {}
+  mariadb-files: {}
+  matomo-config-data: {}
+  solr-data: {}
+
