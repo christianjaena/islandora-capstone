@@ -23,8 +23,8 @@ services:
       --api.insecure=true
       --api.dashboard=true
       --api.debug=true
-      --entryPoints.http.address=:3000
-      --entryPoints.https.address=:5000
+      --entryPoints.http.address=:80
+      --entryPoints.https.address=:443
       --entryPoints.mysql.address=:3306
       --entryPoints.postgresql.address=:5432
       --entryPoints.fcrepo.address=:8081
@@ -38,8 +38,8 @@ services:
       --providers.file.filename=/etc/traefik/tls.yml
       --providers.docker.defaultRule=Host(`${DOMAIN}`)
     ports:
-      - 3000:3000       # drupal, cantaloupe, matomo
-      - 5000:5000     # https for ^^^
+      - 80:80       # drupal, cantaloupe, matomo
+      - 443:443     # https for ^^^
       # Don't do any of these in production
       - 3306:3306   # mysql
       - 5432:5432   # postgres
